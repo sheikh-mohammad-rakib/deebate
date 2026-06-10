@@ -19,8 +19,8 @@ export async function POST(req: Request) {
         ...messages
       ],
       stream: true,
-      // The React frontend acts as the Timekeeper and controls this directly
-      max_completion_tokens: maxTokens,
+      // Use max_tokens for broader compatibility (GitHub Models / older APIs)
+      max_tokens: maxTokens,
     });
 
     // Convert the OpenAI async iterable into a standard Web Stream
@@ -49,10 +49,14 @@ export async function POST(req: Request) {
       },
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error("Streaming API Error:", error);
     return new Response(
-      JSON.stringify({ error: "Failed to generate debate response" }),
+      JSON.stringify({ 
+        error: "Failed to generate debate response",
+        details: error?.message || String(error),
+        status: error?.status || 500
+      }),
       { status: 500, headers: { "Content-Type": "application/json" } }
     );
   }

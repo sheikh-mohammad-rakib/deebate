@@ -1,13 +1,13 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 
-type Role = 
-  | "Moderator" 
-  | "Affirmative (Constructive)" 
-  | "Negative (Constructive)" 
-  | "Affirmative (Rebuttal)" 
-  | "Negative (Rebuttal)" 
-  | "Timekeeper" 
+type Role =
+  | "Moderator"
+  | "Affirmative (Constructive)"
+  | "Negative (Constructive)"
+  | "Affirmative (Rebuttal)"
+  | "Negative (Rebuttal)"
+  | "Timekeeper"
   | "Judge";
 
 type Message = {
@@ -20,22 +20,22 @@ type DebatePhase = "idle" | "moderator" | "aff_const" | "neg_const" | "aff_rebut
 
 // --- THE PERSONAS (Updated with Soft Limits for Pacing) ---
 const PROMPTS = {
-  MODERATOR: 
+  MODERATOR:
     "You are the Chairperson overseeing a formal debate. Neutrally introduce the debate topic. STRICT LIMIT: Maximum 2 sentences. End by inviting the Affirmative Constructive speaker to the floor.",
-  
-  AFF_CONSTRUCTIVE: 
+
+  AFF_CONSTRUCTIVE:
     "You are the Affirmative Constructive. Build the foundational case FOR the topic. Present 2 strong, distinct arguments. Do not address the opponent yet. STRICT LIMIT: Keep your entire statement under 150 words. Ensure you complete your thoughts and sentences fully within this limit.",
-  
-  NEG_CONSTRUCTIVE: 
+
+  NEG_CONSTRUCTIVE:
     "You are the Negative Constructive. Build the foundational case AGAINST the topic. Present 2 strong counter-arguments and identify one flaw in the Affirmative's case. STRICT LIMIT: Keep your entire statement under 150 words. Ensure you complete your thoughts and sentences fully within this limit.",
-  
-  AFF_REBUTTAL: 
+
+  AFF_REBUTTAL:
     "You are the Affirmative Rebuttal. You may NOT introduce new foundational arguments. Strictly defend your original case and aggressively dismantle the Negative Constructive's points. STRICT LIMIT: Keep your entire rebuttal under 100 words. Conclude cleanly within this limit.",
-  
-  NEG_REBUTTAL: 
+
+  NEG_REBUTTAL:
     "You are the Negative Rebuttal. This is the final speech of the debate. Strictly dismantle the Affirmative's rebuttal and summarize why the Negative side wins. Be punchy and conclusive. STRICT LIMIT: Keep your entire rebuttal under 100 words. Conclude cleanly within this limit.",
-  
-  JUDGE: 
+
+  JUDGE:
     "You are an expert, neutral Judge. Evaluate the transcript thoroughly. Analyze logical consistency, directness of rebuttals, and practical real-world engineering validity. CRITICAL INSTRUCTION: Start your response with a clear declaration of the winner in this exact format: 'WINNER: [Affirmative or Negative]' followed by your structural breakdown. Do not declare a tie."
 };
 
@@ -108,12 +108,12 @@ const renderMarkdown = (text: string) => {
   const lines = text.split("\n");
   return lines.map((line, idx) => {
     const trimmed = line.trim();
-    
+
     // Check for Horizontal Rule
     if (trimmed === "---" || trimmed === "***" || trimmed === "___") {
       return <hr key={idx} className="border-slate-800/80 my-4" />;
     }
-    
+
     // Check for Headings (from H4 to H1)
     if (line.startsWith("#### ")) {
       return (
@@ -143,7 +143,7 @@ const renderMarkdown = (text: string) => {
         </h2>
       );
     }
-    
+
     // Check for List Items
     if (trimmed.startsWith("- ") || trimmed.startsWith("* ")) {
       const cleanLine = trimmed.substring(2);
@@ -154,12 +154,12 @@ const renderMarkdown = (text: string) => {
         </div>
       );
     }
-    
+
     // Empty line
     if (trimmed === "") {
       return <div key={idx} className="h-2" />;
     }
-    
+
     // Normal paragraph
     return (
       <p key={idx} className="text-slate-300 text-sm md:text-base leading-relaxed my-1">
@@ -204,28 +204,28 @@ export default function DebateArena() {
       const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
       if (!AudioContextClass) return;
       const ctx = new AudioContextClass();
-      
+
       const osc1 = ctx.createOscillator();
       const osc2 = ctx.createOscillator();
       const gainNode = ctx.createGain();
-      
+
       osc1.type = "sine";
       osc1.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
-      
+
       osc2.type = "sine";
       osc2.frequency.setValueAtTime(880.00, ctx.currentTime); // A5 (harmonic Fifth)
-      
+
       gainNode.gain.setValueAtTime(0, ctx.currentTime);
       gainNode.gain.linearRampToValueAtTime(0.2, ctx.currentTime + 0.05);
       gainNode.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 1.8);
-      
+
       osc1.connect(gainNode);
       osc2.connect(gainNode);
       gainNode.connect(ctx.destination);
-      
+
       osc1.start();
       osc2.start();
-      
+
       osc1.stop(ctx.currentTime + 1.8);
       osc2.stop(ctx.currentTime + 1.8);
     } catch (e) {
@@ -259,8 +259,8 @@ export default function DebateArena() {
       if (done) break;
       const chunk = decoder.decode(value, { stream: true });
       fullResponse += chunk;
-      
-      setMessages((prev) => 
+
+      setMessages((prev) =>
         prev.map((msg) => msg.id === messageId ? { ...msg, content: fullResponse } : msg)
       );
     }
@@ -289,7 +289,7 @@ export default function DebateArena() {
     setIsDebating(true);
     setMessages([]);
     setWinner(null);
-    
+
     const memoryAff: { role: string; content: string }[] = [];
     const memoryNeg: { role: string; content: string }[] = [];
     const transcript: string[] = [];
@@ -298,9 +298,9 @@ export default function DebateArena() {
       // 1. MODERATOR OPENS THE FLOOR
       setActivePhase("moderator");
       const modReply = await fetchStream({
-        model: "gpt-4o-mini", 
-        systemPrompt: PROMPTS.MODERATOR, 
-        messages: [{ role: "user", content: `Topic: ${topic}` }], 
+        model: "gpt-4o-mini",
+        systemPrompt: PROMPTS.MODERATOR,
+        messages: [{ role: "user", content: `Topic: ${topic}` }],
         maxTokens: 120
       }, "Moderator");
       transcript.push(`Moderator: ${modReply}`);
@@ -309,24 +309,24 @@ export default function DebateArena() {
       // 2. AFFIRMATIVE CONSTRUCTIVE
       setActivePhase("aff_const");
       const affConstReply = await fetchStream({
-        model: "gpt-4o-mini", 
-        systemPrompt: PROMPTS.AFF_CONSTRUCTIVE, 
-        messages: [{ role: "user", content: `The floor is yours. Topic: ${topic}` }], 
+        model: "gpt-4o-mini",
+        systemPrompt: PROMPTS.AFF_CONSTRUCTIVE,
+        messages: [{ role: "user", content: `The floor is yours. Topic: ${topic}` }],
         maxTokens: 300
       }, "Affirmative (Constructive)");
       memoryAff.push({ role: "assistant", content: affConstReply });
       memoryNeg.push({ role: "user", content: `Affirmative Constructive argued: ${affConstReply}` });
       transcript.push(`Affirmative Constructive: ${affConstReply}`);
-      
+
       injectTimekeeper("Affirmative Constructive time has expired. Floor yields to Negative Constructive.");
       await delay(3000);
 
       // 3. NEGATIVE CONSTRUCTIVE
       setActivePhase("neg_const");
       const negConstReply = await fetchStream({
-        model: "gpt-4o-mini", 
-        systemPrompt: PROMPTS.NEG_CONSTRUCTIVE, 
-        messages: memoryNeg, 
+        model: "gpt-4o-mini",
+        systemPrompt: PROMPTS.NEG_CONSTRUCTIVE,
+        messages: memoryNeg,
         maxTokens: 300
       }, "Negative (Constructive)");
       memoryNeg.push({ role: "assistant", content: negConstReply });
@@ -339,9 +339,9 @@ export default function DebateArena() {
       // 4. AFFIRMATIVE REBUTTAL
       setActivePhase("aff_rebut");
       const affRebutReply = await fetchStream({
-        model: "gpt-4o-mini", 
-        systemPrompt: PROMPTS.AFF_REBUTTAL, 
-        messages: memoryAff, 
+        model: "gpt-4o-mini",
+        systemPrompt: PROMPTS.AFF_REBUTTAL,
+        messages: memoryAff,
         maxTokens: 200
       }, "Affirmative (Rebuttal)");
       memoryNeg.push({ role: "user", content: `Affirmative Rebuttal argued: ${affRebutReply}` });
@@ -353,9 +353,9 @@ export default function DebateArena() {
       // 5. NEGATIVE REBUTTAL
       setActivePhase("neg_rebut");
       const negRebutReply = await fetchStream({
-        model: "gpt-4o-mini", 
-        systemPrompt: PROMPTS.NEG_REBUTTAL, 
-        messages: memoryNeg, 
+        model: "gpt-4o-mini",
+        systemPrompt: PROMPTS.NEG_REBUTTAL,
+        messages: memoryNeg,
         maxTokens: 200
       }, "Negative (Rebuttal)");
       transcript.push(`Negative Rebuttal: ${negRebutReply}`);
@@ -366,9 +366,9 @@ export default function DebateArena() {
       // 6. THE JUDGE EVALUATION
       setActivePhase("judge");
       const judgeReply = await fetchStream({
-        model: "gpt-4o", 
-        systemPrompt: PROMPTS.JUDGE, 
-        messages: [{ role: "user", content: `Official Transcript:\n\n${transcript.join("\n\n")}` }], 
+        model: "gpt-4o",
+        systemPrompt: PROMPTS.JUDGE,
+        messages: [{ role: "user", content: `Official Transcript:\n\n${transcript.join("\n\n")}` }],
         maxTokens: 1000
       }, "Judge");
 
@@ -407,7 +407,7 @@ export default function DebateArena() {
         return `## ${msg.role}\n${msg.content}\n`;
       })
       .join("\n");
-    
+
     navigator.clipboard.writeText(`# Debate Topic: ${topic}\n\n${textContent}`);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -455,13 +455,12 @@ export default function DebateArena() {
         </div>
 
         {/* Audio Mute Switch */}
-        <button 
-          onClick={() => setIsMuted(!isMuted)} 
-          className={`px-3 py-1.5 rounded-lg border transition-all duration-300 flex items-center gap-2 text-xs font-semibold ${
-            isMuted 
-              ? "border-rose-950/30 bg-rose-950/20 text-rose-400 hover:bg-rose-950/40" 
+        <button
+          onClick={() => setIsMuted(!isMuted)}
+          className={`px-3 py-1.5 rounded-lg border transition-all duration-300 flex items-center gap-2 text-xs font-semibold ${isMuted
+              ? "border-rose-950/30 bg-rose-950/20 text-rose-400 hover:bg-rose-950/40"
               : "border-slate-800 bg-slate-900/60 text-slate-300 hover:border-slate-700 hover:bg-slate-800/80"
-          }`}
+            }`}
           title={isMuted ? "Unmute Announcements" : "Mute Announcements"}
         >
           {isMuted ? (
@@ -485,33 +484,32 @@ export default function DebateArena() {
 
       {/* Main Body */}
       <main className="flex-1 w-full max-w-7xl mx-auto p-4 md:p-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
+
         {/* Left Column: Dashboard Control */}
         <section className="lg:col-span-1 flex flex-col gap-6">
-          
+
           {/* Topic Setup Card */}
           <div className="glass-panel p-6 rounded-2xl flex flex-col gap-4 shadow-xl relative overflow-hidden">
             <div className="absolute top-0 left-0 w-24 h-24 bg-indigo-500/5 rounded-full blur-2xl -translate-x-12 -translate-y-12" />
             <h2 className="text-sm font-extrabold uppercase tracking-wider text-slate-400 font-display">Arena Controls</h2>
-            
+
             <div className="flex flex-col gap-1.5">
               <label className="text-xs text-slate-500 font-semibold">Debate Resolution</label>
-              <textarea 
-                className="w-full min-h-[96px] bg-slate-950/60 border border-slate-800 rounded-xl p-3 text-sm font-medium focus:outline-none focus:border-indigo-500 transition-colors placeholder-slate-600 leading-relaxed text-slate-200 resize-none" 
-                value={topic} 
-                onChange={(e) => setTopic(e.target.value)} 
+              <textarea
+                className="w-full min-h-[96px] bg-slate-950/60 border border-slate-800 rounded-xl p-3 text-sm font-medium focus:outline-none focus:border-indigo-500 transition-colors placeholder-slate-600 leading-relaxed text-slate-200 resize-none"
+                value={topic}
+                onChange={(e) => setTopic(e.target.value)}
                 disabled={isDebating}
                 placeholder="Enter debate topic..."
               />
             </div>
 
-            <button 
-              className={`w-full py-3.5 rounded-xl font-bold tracking-wide transition-all duration-300 shadow-md relative group overflow-hidden ${
-                isDebating 
-                  ? "bg-slate-900 border border-slate-800 text-slate-500 cursor-not-allowed" 
+            <button
+              className={`w-full py-3.5 rounded-xl font-bold tracking-wide transition-all duration-300 shadow-md relative group overflow-hidden ${isDebating
+                  ? "bg-slate-900 border border-slate-800 text-slate-500 cursor-not-allowed"
                   : "bg-gradient-to-r from-violet-600 to-indigo-600 text-white hover:brightness-110 active:scale-[0.98] shadow-indigo-950/20"
-              }`}
-              onClick={startDebate} 
+                }`}
+              onClick={startDebate}
               disabled={isDebating}
             >
               {isDebating ? (
@@ -539,24 +537,20 @@ export default function DebateArena() {
                     key={preset.id}
                     onClick={() => selectPreset(preset.text)}
                     disabled={isDebating}
-                    className={`text-left p-3.5 rounded-xl border transition-all duration-300 flex items-start gap-3.5 group relative overflow-hidden ${
-                      isDebating ? "opacity-40 cursor-not-allowed" : ""
-                    } ${
-                      isActive 
-                        ? "bg-indigo-950/15 border-indigo-500/40 shadow-inner" 
+                    className={`text-left p-3.5 rounded-xl border transition-all duration-300 flex items-start gap-3.5 group relative overflow-hidden ${isDebating ? "opacity-40 cursor-not-allowed" : ""
+                      } ${isActive
+                        ? "bg-indigo-950/15 border-indigo-500/40 shadow-inner"
                         : "bg-slate-900/30 border-slate-800/80 hover:bg-slate-900/60 hover:border-slate-700/60"
-                    }`}
+                      }`}
                   >
                     <span className="text-lg bg-slate-950/50 p-2 rounded-lg border border-slate-800/40 group-hover:scale-105 transition-transform shrink-0">
                       {preset.icon}
                     </span>
                     <div className="flex flex-col gap-0.5">
-                      <span className={`text-[9px] font-extrabold tracking-wider uppercase ${
-                        isActive ? "text-indigo-400" : "text-slate-500"
-                      }`}>{preset.category}</span>
-                      <span className={`text-xs font-bold ${
-                        isActive ? "text-slate-100" : "text-slate-300 group-hover:text-slate-200"
-                      }`}>{preset.label}</span>
+                      <span className={`text-[9px] font-extrabold tracking-wider uppercase ${isActive ? "text-indigo-400" : "text-slate-500"
+                        }`}>{preset.category}</span>
+                      <span className={`text-xs font-bold ${isActive ? "text-slate-100" : "text-slate-300 group-hover:text-slate-200"
+                        }`}>{preset.label}</span>
                     </div>
                   </button>
                 );
@@ -571,7 +565,7 @@ export default function DebateArena() {
               {STEPS.map((step, idx) => {
                 const isActive = activePhase === step.id;
                 const isCompleted = getStepCompleted(step.id);
-                
+
                 // Color formatting
                 let activeColor = "border-indigo-500/50 text-indigo-400";
                 if (step.id.includes("aff")) activeColor = "border-cyan-500/50 text-cyan-400";
@@ -580,17 +574,15 @@ export default function DebateArena() {
                 if (step.id === "judge") activeColor = "border-violet-500/50 text-violet-400";
 
                 return (
-                  <div 
-                    key={step.id} 
-                    className={`flex gap-3.5 transition-all duration-300 relative ${
-                      isCompleted ? "opacity-45" : isActive ? "opacity-100 scale-[1.01]" : "opacity-35"
-                    }`}
+                  <div
+                    key={step.id}
+                    className={`flex gap-3.5 transition-all duration-300 relative ${isCompleted ? "opacity-45" : isActive ? "opacity-100 scale-[1.01]" : "opacity-35"
+                      }`}
                   >
                     {/* Visual Line connector */}
                     {idx < STEPS.length - 1 && (
-                      <div className={`absolute left-[13px] top-7 bottom-[-18px] w-[2px] transition-colors duration-500 ${
-                        isCompleted ? "bg-emerald-500/30" : isActive ? "bg-indigo-500/20" : "bg-slate-800"
-                      }`} />
+                      <div className={`absolute left-[13px] top-7 bottom-[-18px] w-[2px] transition-colors duration-500 ${isCompleted ? "bg-emerald-500/30" : isActive ? "bg-indigo-500/20" : "bg-slate-800"
+                        }`} />
                     )}
 
                     {/* Step Icon Indicator */}
@@ -628,37 +620,35 @@ export default function DebateArena() {
 
         {/* Right Column: Debate Arena Feed */}
         <section className="lg:col-span-2 flex flex-col gap-4 h-[780px] lg:h-auto">
-          
+
           {/* Feed Header */}
           <div className="flex items-center justify-between px-2.5">
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-violet-500 animate-pulse shadow-md shadow-violet-500/50" />
               <span className="text-xs font-bold uppercase tracking-wider text-slate-400 font-display">Debate Arena Stage</span>
             </div>
-            
+
             <div className="flex items-center gap-3">
               {/* Autoscroll Toggle */}
-              <button 
+              <button
                 onClick={() => setAutoScroll(!autoScroll)}
-                className={`text-[10px] font-extrabold uppercase px-2.5 py-1.5 rounded-lg border transition-all duration-300 flex items-center gap-1.5 ${
-                  autoScroll 
-                    ? "border-slate-800 bg-slate-950/60 text-slate-400 hover:border-slate-700" 
+                className={`text-[10px] font-extrabold uppercase px-2.5 py-1.5 rounded-lg border transition-all duration-300 flex items-center gap-1.5 ${autoScroll
+                    ? "border-slate-800 bg-slate-950/60 text-slate-400 hover:border-slate-700"
                     : "border-indigo-950 bg-indigo-950/20 text-indigo-400"
-                }`}
+                  }`}
               >
                 <span className={`w-1.5 h-1.5 rounded-full ${autoScroll ? "bg-slate-500" : "bg-indigo-400 animate-ping"}`} />
                 <span>{autoScroll ? "Autoscroll On" : "Scroll Locked"}</span>
               </button>
 
               {/* Copy Transcript Button */}
-              <button 
+              <button
                 onClick={copyTranscript}
                 disabled={messages.length === 0}
-                className={`text-[10px] font-extrabold uppercase px-2.5 py-1.5 rounded-lg border transition-all duration-300 flex items-center gap-1.5 ${
-                  messages.length === 0
+                className={`text-[10px] font-extrabold uppercase px-2.5 py-1.5 rounded-lg border transition-all duration-300 flex items-center gap-1.5 ${messages.length === 0
                     ? "border-slate-800/40 bg-slate-900/10 text-slate-600 cursor-not-allowed"
                     : "border-slate-800 bg-slate-900/60 text-slate-300 hover:border-slate-700 hover:bg-slate-800/80 active:scale-[0.97]"
-                }`}
+                  }`}
               >
                 {copied ? (
                   <>
@@ -680,7 +670,7 @@ export default function DebateArena() {
           </div>
 
           {/* Transcript Panel Box */}
-          <div 
+          <div
             ref={containerRef}
             className="flex-1 glass-panel rounded-2xl p-4 md:p-6 overflow-y-auto flex flex-col gap-6 border-slate-800/60 shadow-inner min-h-[400px]"
           >
@@ -707,22 +697,19 @@ export default function DebateArena() {
 
             {/* Verdict Box Rendering at completion */}
             {winner && activePhase === "verdict" && (
-              <div className={`w-full border p-6 rounded-2xl shadow-xl text-center relative overflow-hidden animate-[fadeIn_0.8s_ease-out] mb-2 ${
-                winner === "Affirmative"
+              <div className={`w-full border p-6 rounded-2xl shadow-xl text-center relative overflow-hidden animate-[fadeIn_0.8s_ease-out] mb-2 ${winner === "Affirmative"
                   ? "border-cyan-500/30 bg-gradient-to-r from-cyan-950/20 via-slate-950/90 to-cyan-950/20 shadow-cyan-950/15"
                   : "border-rose-500/30 bg-gradient-to-r from-rose-950/20 via-slate-950/90 to-rose-950/20 shadow-rose-950/15"
-              }`}>
-                <div className={`absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r ${
-                  winner === "Affirmative" ? "from-transparent via-cyan-400 to-transparent" : "from-transparent via-rose-400 to-transparent"
-                }`} />
-                <span className={`text-[10px] font-extrabold uppercase tracking-widest px-2.5 py-1 rounded-full border mb-3 inline-block ${
-                  winner === "Affirmative" ? "border-cyan-500/30 text-cyan-400 bg-cyan-950/30" : "border-rose-500/30 text-rose-400 bg-rose-950/30"
-                }`}>Official Verdict</span>
-                
+                }`}>
+                <div className={`absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r ${winner === "Affirmative" ? "from-transparent via-cyan-400 to-transparent" : "from-transparent via-rose-400 to-transparent"
+                  }`} />
+                <span className={`text-[10px] font-extrabold uppercase tracking-widest px-2.5 py-1 rounded-full border mb-3 inline-block ${winner === "Affirmative" ? "border-cyan-500/30 text-cyan-400 bg-cyan-950/30" : "border-rose-500/30 text-rose-400 bg-rose-950/30"
+                  }`}>Official Verdict</span>
+
                 <h2 className="text-2xl md:text-3xl font-black tracking-tight font-display text-white mb-2 uppercase">
                   {winner === "Affirmative" ? "Affirmative wins the debate" : "Negative wins the debate"}
                 </h2>
-                
+
                 <p className="text-xs md:text-sm text-slate-400 max-w-xl mx-auto leading-relaxed mb-5">
                   The Chief Judge panel evaluated the logic construction, rebuttals, and practical validities, declaring the {winner} team as the victor of this Lincoln-Douglas round.
                 </p>
@@ -766,7 +753,7 @@ export default function DebateArena() {
                 }
 
                 const isStreaming = currentSpeaker === msg.role && msg.content === "";
-                
+
                 // Specific alignments & styles
                 if (msg.role === "Moderator") {
                   return (
@@ -810,18 +797,16 @@ export default function DebateArena() {
                 const isNeg = msg.role.includes("Negative");
 
                 return (
-                  <div 
-                    key={msg.id} 
-                    className={`flex gap-3 max-w-[85%] animate-[fadeIn_0.3s_ease-out] ${
-                      isAff ? "self-start flex-row" : "self-end flex-row-reverse"
-                    }`}
+                  <div
+                    key={msg.id}
+                    className={`flex gap-3 max-w-[85%] animate-[fadeIn_0.3s_ease-out] ${isAff ? "self-start flex-row" : "self-end flex-row-reverse"
+                      }`}
                   >
                     {/* Avatar */}
-                    <div className={`p-2.5 h-10 w-10 shrink-0 rounded-xl flex items-center justify-center shadow-md border ${
-                      isAff 
-                        ? "bg-cyan-500/10 border-cyan-500/20 text-cyan-400" 
+                    <div className={`p-2.5 h-10 w-10 shrink-0 rounded-xl flex items-center justify-center shadow-md border ${isAff
+                        ? "bg-cyan-500/10 border-cyan-500/20 text-cyan-400"
                         : "bg-rose-500/10 border-rose-500/20 text-rose-400"
-                    }`}>
+                      }`}>
                       {isAff ? <AffirmativeIcon /> : <NegativeIcon />}
                     </div>
 
@@ -831,20 +816,18 @@ export default function DebateArena() {
                         {isNeg && currentSpeaker === msg.role && (
                           <span className="px-1.5 py-0.5 rounded text-[8px] bg-rose-500/20 text-rose-300 font-bold uppercase animate-pulse border border-rose-500/20">Streaming</span>
                         )}
-                        <span className={`text-[10px] font-extrabold tracking-wider uppercase font-display ${
-                          isAff ? "text-cyan-400" : "text-rose-400"
-                        }`}>
+                        <span className={`text-[10px] font-extrabold tracking-wider uppercase font-display ${isAff ? "text-cyan-400" : "text-rose-400"
+                          }`}>
                           {msg.role}
                         </span>
                         {isAff && currentSpeaker === msg.role && (
                           <span className="px-1.5 py-0.5 rounded text-[8px] bg-cyan-500/20 text-cyan-300 font-bold uppercase animate-pulse border border-cyan-500/20">Streaming</span>
                         )}
                       </div>
-                      <div className={`p-4 rounded-2xl text-slate-200 text-sm md:text-base leading-relaxed border ${
-                        isAff 
-                          ? "rounded-tl-none bg-slate-900/40 border-cyan-500/10 hover:border-cyan-500/20" 
+                      <div className={`p-4 rounded-2xl text-slate-200 text-sm md:text-base leading-relaxed border ${isAff
+                          ? "rounded-tl-none bg-slate-900/40 border-cyan-500/10 hover:border-cyan-500/20"
                           : "rounded-tr-none bg-slate-900/40 border-rose-500/10 hover:border-rose-500/20 text-left"
-                      } ${currentSpeaker === msg.role ? (isAff ? "glow-cyan" : "glow-rose") : ""}`}>
+                        } ${currentSpeaker === msg.role ? (isAff ? "glow-cyan" : "glow-rose") : ""}`}>
                         {msg.content === "" ? (
                           <div className="flex items-center gap-1.5 py-1.5 px-1">
                             <span className={`w-1.5 h-1.5 rounded-full typing-dot ${isAff ? "bg-cyan-400" : "bg-rose-400"}`} />
